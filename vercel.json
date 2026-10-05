@@ -12,5 +12,8 @@
         "service": "app"
       }
     }
+  ],
+  "regions": [
+    "sin1"
   ]
 }
