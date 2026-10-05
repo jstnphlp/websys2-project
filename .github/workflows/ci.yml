@@ -47,3 +47,69 @@ jobs:
         run: |
           npm run typecheck
           npm run build
+
+  production-container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: garden_ci
+          POSTGRES_USER: garden_ci
+          POSTGRES_PASSWORD: garden_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U garden_ci -d garden_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build production image
+        run: docker build -f Dockerfile.vercel -t community-garden:ci .
+
+      - name: Prepare isolated container environment
+        run: |
+          cat > "$RUNNER_TEMP/deployment.env" <<'ENV'
+          APP_URL=https://garden.example
+          TRUSTED_PROXIES=*
+          PORT=8080
+          DB_HOST=127.0.0.1
+          DB_PORT=5432
+          DB_DATABASE=garden_ci
+          DB_USERNAME=garden_ci
+          DB_PASSWORD=garden_ci
+          DB_SSLMODE=disable
+          ENV
+          printf 'APP_KEY=base64:%s\n' "$(openssl rand -base64 32)" >> "$RUNNER_TEMP/deployment.env"
+
+      - name: Migrate isolated PostgreSQL database
+        run: >-
+          docker run --rm --network host
+          --env-file "$RUNNER_TEMP/deployment.env"
+          community-garden:ci php artisan migrate --force --no-ansi
+
+      - name: Check production startup and HTTPS forwarding
+        run: |
+          docker run -d --name garden-ci --network host \
+            --env-file "$RUNNER_TEMP/deployment.env" community-garden:ci
+          curl --fail --silent --show-error --retry 15 --retry-connrefused --retry-delay 2 \
+            --output /dev/null http://127.0.0.1:8080/up
+          curl --fail --silent --show-error --output /dev/null http://127.0.0.1:8080/login
+          curl --silent --show-error --dump-header "$RUNNER_TEMP/redirect.headers" \
+            --output /dev/null -H 'Host: garden.example' -H 'X-Forwarded-Proto: https' \
+            -H 'X-Forwarded-Port: 443' http://127.0.0.1:8080/
+          grep -qi '^Location: https://garden.example/login' "$RUNNER_TEMP/redirect.headers"
+          docker exec garden-ci sh -c 'test ! -f public/hot && test ! -f .env && test -f public/build/manifest.json'
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker logs garden-ci 2>/dev/null || true
+
+      - name: Stop test container
+        if: always()
+        run: docker stop garden-ci 2>/dev/null || true

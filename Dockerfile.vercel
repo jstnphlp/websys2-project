@@ -8,7 +8,13 @@ COPY public ./public
 COPY vite.config.js tsconfig.json components.json ./
 RUN npm run build
 
-FROM composer:2 AS vendor
+FROM dunglas/frankenphp:1-php8.4-bookworm AS php-base
+
+RUN install-php-extensions pdo_pgsql intl opcache zip
+
+FROM php-base AS vendor
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 COPY composer.json composer.lock ./
@@ -16,9 +22,7 @@ RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --no-
 COPY . .
 RUN composer dump-autoload --no-dev --classmap-authoritative --no-interaction
 
-FROM dunglas/frankenphp:1-php8.4-bookworm AS runtime
-
-RUN install-php-extensions pdo_pgsql intl opcache zip
+FROM php-base AS runtime
 
 WORKDIR /app
 COPY --chown=www-data:www-data . .
@@ -29,10 +33,21 @@ COPY docker/Caddyfile /etc/frankenphp/Caddyfile
 ENV APP_ENV=production \
     APP_DEBUG=false \
     LOG_CHANNEL=stderr \
+    LOG_LEVEL=warning \
     CACHE_STORE=array \
+    CACHE_LIMITER=database \
+    DB_CONNECTION=pgsql \
     SESSION_DRIVER=database \
+    SESSION_ENCRYPT=true \
+    SESSION_SECURE_COOKIE=true \
+    QUEUE_CONNECTION=sync \
     LARAVEL_STORAGE_PATH=/tmp/community-garden/storage \
-    VIEW_COMPILED_PATH=/tmp/community-garden/storage/framework/views
+    VIEW_COMPILED_PATH=/tmp/community-garden/storage/framework/views \
+    APP_CONFIG_CACHE=/tmp/community-garden/bootstrap/config.php \
+    APP_ROUTES_CACHE=/tmp/community-garden/bootstrap/routes.php \
+    APP_EVENTS_CACHE=/tmp/community-garden/bootstrap/events.php \
+    APP_SERVICES_CACHE=/tmp/community-garden/bootstrap/services.php \
+    APP_PACKAGES_CACHE=/tmp/community-garden/bootstrap/packages.php
 
 RUN chmod +x /app/docker/entrypoint.sh
 

@@ -237,11 +237,13 @@ composer install --no-dev --classmap-authoritative
 
 `Dockerfile.vercel` performs both asset and Composer builds in isolated stages and runs the result on PHP 8.4 with FrankenPHP. Logs go to stderr. Laravel's runtime-write directory is under `/tmp`; durable sessions live in PostgreSQL and future uploads must use Supabase Storage.
 
+Use [.env.production.example](.env.production.example) for production variables and follow [the deployment guide](docs/DEPLOYMENT.md) for migrations, proxy configuration, and release checks. The image excludes local environment files, databases, cached configuration, and Vite's `public/hot` marker. Configuration, routes, and views are cached at startup using the supplied runtime environment.
+
 Build the image locally when Docker is running:
 
 ```bash
 docker build -f Dockerfile.vercel -t community-garden .
-docker run --rm -p 8080:80 --env-file .env community-garden
+docker run --rm -p 127.0.0.1:8080:80 --env-file .env.production community-garden
 ```
 
 ## Vercel deployment
@@ -256,8 +258,7 @@ The directories `submission/PHASE4/PROJECT` and `submission/PROJECT` are course 
 
 If a service later calls another, add a binding on the calling service with `type: "service"`, the target's `service` name, `format: "url"`, and an `env` variable name. Read that injected URL in the calling service at request time; do not set it manually or use it in builds or middleware. To make another service public, add a specific rewrite before the catch-all and update that application's routes, asset paths, and browser URLs to agree with its public prefix.
 
-1. Push the repository to GitHub and import it into Vercel with the repository root as the project root.
-2. Add the production variables listed above in Vercel Project Settings. Generate a production `APP_KEY` with `php artisan key:generate --show`; never reuse or commit the local key.
+2. Add the variables from `.env.production.example` in Vercel Project Settings, including `TRUSTED_PROXIES=*` for HTTPS forwarding. Generate a production `APP_KEY` with `php artisan key:generate --show`; never reuse or commit the local key.
 3. Keep the Vercel function region close to the selected Supabase project region.
 4. Run production migrations separately with `php artisan migrate --force` using the production database settings.
 5. Deploy. Vercel supplies `PORT`; the included Caddy configuration listens on it (default `80`).
