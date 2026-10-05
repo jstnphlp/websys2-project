@@ -246,13 +246,23 @@ docker run --rm -p 8080:80 --env-file .env community-garden
 
 ## Vercel deployment
 
-Vercel's current container-image runtime auto-detects a root `Dockerfile.vercel`, builds it, stores it in Vercel Container Registry, and routes project traffic to the container. Container Images permission must be enabled for the Vercel account/team.
+The root `vercel.json` uses Vercel's services configuration to deploy the application as one container service, built with the root `Dockerfile.vercel`. Container Images permission must be enabled for the Vercel account/team.
 
-1. Push the repository to GitHub and import it into Vercel.
+| Service | Root | Public routing |
+| --- | --- | --- |
+| `app` | `.` | All paths, through the final `/(.*)` rewrite |
+
+The directories `submission/PHASE4/PROJECT` and `submission/PROJECT` are course submission snapshots of the same application, not separate runtime services. They are excluded from the container build by `.dockerignore` and are not deployed independently. Laravel serves the Inertia/React frontend and the backend together, so no service bindings are needed. Browser API requests use paths such as `/api/garden-plots`, which reach `app` through the same catch-all rewrite. No path prefix changes are needed for this routing.
+
+If a service later calls another, add a binding on the calling service with `type: "service"`, the target's `service` name, `format: "url"`, and an `env` variable name. Read that injected URL in the calling service at request time; do not set it manually or use it in builds or middleware. To make another service public, add a specific rewrite before the catch-all and update that application's routes, asset paths, and browser URLs to agree with its public prefix.
+
+1. Push the repository to GitHub and import it into Vercel with the repository root as the project root.
 2. Add the production variables listed above in Vercel Project Settings. Generate a production `APP_KEY` with `php artisan key:generate --show`; never reuse or commit the local key.
 3. Keep the Vercel function region close to the selected Supabase project region.
 4. Run production migrations separately with `php artisan migrate --force` using the production database settings.
 5. Deploy. Vercel supplies `PORT`; the included Caddy configuration listens on it (default `80`).
+
+For local services testing, run `vercel dev` from the repository root with the Vercel CLI and a compatible container runtime installed. It runs all services together and injects any declared binding variables.
 
 Container instances may scale to zero and must not be treated as persistent machines. Queue workers, schedulers, and file upload flows are outside this initial scaffold and need platform-appropriate designs before those features are added.
 

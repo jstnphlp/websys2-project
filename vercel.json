@@ -1,0 +1,16 @@
+{
+  "services": {
+    "app": {
+      "root": ".",
+      "runtime": "container"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "app"
+      }
+    }
+  ]
+}
