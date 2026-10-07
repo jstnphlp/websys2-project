@@ -68,7 +68,7 @@ export default function Assignments({ assignments, members, availablePlots, crop
                 {assignments.data.length === 0 ? <Empty message="No assignments match this view." /> : (
                     <WorkspacePanel className="bg-[#fbf8f2] shadow-none">
                         <Table className="[&_th]:h-10 [&_th]:text-[10px]">
-                            <TableHeader className="bg-card/80"><TableRow className="hover:bg-transparent"><TableHead className="px-5 sm:px-6">Member</TableHead><TableHead>Garden plot</TableHead><TableHead>Started</TableHead><TableHead>End date</TableHead><TableHead>Status</TableHead><TableHead className="px-5 text-right sm:px-6">Manage</TableHead></TableRow></TableHeader>
+                            <TableHeader className="bg-card/80"><TableRow className="hover:bg-transparent"><TableHead className="px-5 sm:px-6">Member</TableHead><TableHead>Garden plot</TableHead><TableHead>Started</TableHead><TableHead>End date</TableHead><TableHead>Status</TableHead><TableHead>Harvested</TableHead><TableHead className="px-5 text-right sm:px-6">Manage</TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {assignments.data.map((item) => (
                                     <TableRow key={item.id} className="border-border/60 hover:bg-primary/[0.032]">
@@ -77,6 +77,7 @@ export default function Assignments({ assignments, members, availablePlots, crop
                                         <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{dateLabel(item.start_date)}</TableCell>
                                         <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{item.end_date ? dateLabel(item.end_date) : 'Ongoing'}</TableCell>
                                         <TableCell className="whitespace-nowrap"><StatusBadge value={item.status} /></TableCell>
+                                        <TableCell className="whitespace-nowrap text-xs tabular-nums">{Number(item.harvests_sum_quantity_kg ?? 0) > 0 ? <span className="font-semibold">{Number(item.harvests_sum_quantity_kg).toLocaleString('en-PH', { maximumFractionDigits: 2 })} kg</span> : <span className="text-muted-foreground">—</span>}</TableCell>
                                         <TableCell className="px-5 text-right sm:px-6"><div className="flex justify-end gap-2">{item.status === 'active' ? <><Button size="sm" variant="outline" className="rounded-[10px]" onClick={() => open('edit', item)}>Edit dates</Button><Button size="sm" variant="outline" className="rounded-[10px]" onClick={() => open('close', item)}>Close</Button></> : <span className="text-xs text-muted-foreground">Closed</span>}</div></TableCell>
                                     </TableRow>
                                 ))}

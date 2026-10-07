@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\GardenPlot;
+use App\Models\Harvest;
 use App\Models\PlotAssignment;
 use App\Models\PlotRequest;
 use App\Models\User;
@@ -27,6 +28,10 @@ class ReportController extends Controller
             ],
             'requestBreakdown' => PlotRequest::whereBetween('created_at', [$from, $to.' 23:59:59'])->selectRaw('status, count(*) as total')->groupBy('status')->get(),
             'assignmentBreakdown' => PlotAssignment::whereBetween('created_at', [$from, $to.' 23:59:59'])->selectRaw('status, count(*) as total')->groupBy('status')->get(),
+            'harvestBreakdown' => Harvest::join('plantings', 'plantings.id', '=', 'harvests.planting_id')->join('crops', 'crops.id', '=', 'plantings.crop_id')
+                ->whereBetween('harvests.harvested_at', [$from, $to])->selectRaw('crops.name as crop, count(*) as harvests, sum(harvests.quantity_kg) as total_kg')
+                ->groupBy('crops.name')->orderByDesc('total_kg')->get()
+                ->map(fn ($row) => ['crop' => $row->crop, 'harvests' => (int) $row->harvests, 'total_kg' => round((float) $row->total_kg, 2)]),
         ]);
     }
 
@@ -42,6 +47,9 @@ class ReportController extends Controller
             fputcsv($out, []);
             fputcsv($out, ['Assignment ID', 'Member', 'Plot', 'Status', 'Start date', 'End date']);
             PlotAssignment::with(['user', 'gardenPlot'])->whereBetween('created_at', [$from, $to.' 23:59:59'])->orderBy('id')->each(fn ($item) => fputcsv($out, [$item->id, $this->csvText($item->user->name), $this->csvText($item->gardenPlot->plot_code), $item->status->value, $item->start_date->toDateString(), $item->end_date?->toDateString()]));
+            fputcsv($out, []);
+            fputcsv($out, ['Harvest ID', 'Member', 'Plot', 'Crop', 'Harvested', 'Quantity (kg)']);
+            Harvest::with(['planting.crop', 'planting.assignment.user', 'planting.assignment.gardenPlot'])->whereBetween('harvested_at', [$from, $to])->orderBy('harvested_at')->orderBy('id')->each(fn ($item) => fputcsv($out, [$item->id, $this->csvText($item->planting->assignment->user->name), $this->csvText($item->planting->assignment->gardenPlot->plot_code), $this->csvText($item->planting->crop->name), $item->harvested_at->toDateString(), $item->quantity_kg]));
             fclose($out);
         }, "garden-report-{$from}-{$to}.csv", ['Content-Type' => 'text/csv']);
     }

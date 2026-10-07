@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class PlotAssignment extends Model
 {
@@ -35,6 +36,11 @@ class PlotAssignment extends Model
     public function plantings(): HasMany
     {
         return $this->hasMany(Planting::class);
+    }
+
+    public function harvests(): HasManyThrough
+    {
+        return $this->hasManyThrough(Harvest::class, Planting::class);
     }
 
     protected function casts(): array

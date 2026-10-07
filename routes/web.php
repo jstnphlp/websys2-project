@@ -11,6 +11,7 @@ use App\Http\Controllers\CropController;
 use App\Http\Controllers\CropCycleForecastController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GardenPlotController;
+use App\Http\Controllers\HarvestController;
 use App\Http\Controllers\HelpController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\NotificationController;
@@ -64,6 +65,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::put('/assignments/{assignment}', [AssignmentController::class, 'update'])->middleware('role:staff')->name('assignments.update');
         Route::post('/assignments/{assignment}/close', [AssignmentController::class, 'close'])->middleware('role:staff')->name('assignments.close');
         Route::post('/assignments/{assignment}/plantings', [PlantingController::class, 'store'])->middleware('role:member')->name('plantings.store');
+        Route::post('/plantings/{planting}/harvests', [HarvestController::class, 'store'])->middleware('role:member')->name('harvests.store');
         Route::get('/crops', [CropController::class, 'index'])->middleware('role:staff')->name('crops.index');
         Route::post('/crops', [CropController::class, 'store'])->middleware('role:staff')->name('crops.store');
         Route::put('/crops/{crop}', [CropController::class, 'update'])->middleware('role:staff')->name('crops.update');

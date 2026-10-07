@@ -42,7 +42,7 @@ class CropCycleForecastController extends Controller
         $rangeValidation->validate();
 
         $query = Planting::query()
-            ->with(['crop', 'assignment.gardenPlot'])
+            ->with(['crop', 'assignment.gardenPlot', 'harvests'])
             ->whereHas('crop', fn ($crop) => $crop->whereNotNull('maturity_days_min')->whereNotNull('maturity_days_max'))
             // Validation caps maturity and harvest duration at 3650 days each.
             ->where('planted_at', '>=', $rangeStart->subDays(7300)->toDateString())

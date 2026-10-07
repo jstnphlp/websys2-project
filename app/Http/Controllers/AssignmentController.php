@@ -20,10 +20,10 @@ class AssignmentController extends Controller
     public function index(Request $request): Response
     {
         $isMember = $request->user()->role->value === 'member';
-        $query = PlotAssignment::with(['user:id,name,email', 'gardenPlot:id,plot_code,location,size'])->latest('start_date');
+        $query = PlotAssignment::with(['user:id,name,email', 'gardenPlot:id,plot_code,location,size'])->withSum('harvests', 'quantity_kg')->latest('start_date');
         if ($isMember) {
             $query->where('user_id', $request->user()->id);
-            $query->with('plantings.crop:id,name,type');
+            $query->with(['plantings.crop:id,name,type', 'plantings.harvests']);
         }
         if ($search = $request->string('search')->trim()->toString()) {
             $query->where(fn ($q) => $q->whereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"))->orWhereHas('gardenPlot', fn ($p) => $p->where(fn ($plot) => $plot->where('plot_code', 'like', "%{$search}%")->orWhere('location', 'like', "%{$search}%"))));
@@ -38,7 +38,7 @@ class AssignmentController extends Controller
             'availablePlots' => $isMember ? [] : GardenPlot::where('status', 'available')->whereNull('archived_at')->orderBy('plot_code')->get(['id', 'plot_code']),
             'crops' => $isMember ? Crop::orderBy('name')->get(['id', 'name', 'type']) : [],
             'activeAssignment' => $isMember
-                ? $request->user()->plotAssignments()->with(['gardenPlot:id,plot_code,location,size', 'plantings.crop:id,name,type'])->where('status', 'active')->first()
+                ? $request->user()->plotAssignments()->with(['gardenPlot:id,plot_code,location,size', 'plantings.crop:id,name,type', 'plantings.harvests'])->where('status', 'active')->first()
                 : null,
             'today' => now()->toDateString(),
         ]);

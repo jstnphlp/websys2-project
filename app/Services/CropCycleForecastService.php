@@ -27,9 +27,10 @@ class CropCycleForecastService
                 $end = $crop->harvest_window_days === null
                     ? $latest
                     : $latest->addDays($crop->harvest_window_days);
-                $status = $today->lt($earliest)
-                    ? 'upcoming'
-                    : ($today->lte($end) ? 'in_window' : 'window_passed');
+                $harvestedKg = round((float) $planting->harvests->sum('quantity_kg'), 2);
+                $status = $harvestedKg > 0
+                    ? 'harvested'
+                    : ($today->lt($earliest) ? 'upcoming' : ($today->lte($end) ? 'in_window' : 'window_passed'));
 
                 return [
                     'id' => 'planting:'.$planting->id,
@@ -44,6 +45,7 @@ class CropCycleForecastService
                     'harvest_start_latest' => $latest->toDateString(),
                     'harvest_window_end' => $crop->harvest_window_days === null ? null : $end->toDateString(),
                     'status' => $status,
+                    'harvested_kg' => $harvestedKg,
                     'basis_days' => ['min' => $crop->maturity_days_min, 'max' => $crop->maturity_days_max],
                     'basis_note' => $crop->maturity_source,
                     'plot' => [

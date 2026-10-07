@@ -1,19 +1,20 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { ArrowRight, CalendarDays, CircleCheck, Clock3, Eye, LoaderCircle, MapPin, Sprout, XCircle } from 'lucide-react';
+import { ArrowRight, Carrot, CalendarDays, CircleCheck, Clock3, Eye, LoaderCircle, MapPin, Sprout, XCircle } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { CropTypeIcon, cropTypes, type CropType } from '@/components/crop-type-icon';
 import { PlantingCalendar } from '@/components/planting-calendar';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Pagination, PlotMarker, WorkspaceStatusTabs, type Paginated } from '@/components/workspace-ui';
+import { Pagination, PlotMarker, WorkspaceStatusTabs, fieldClass, type Paginated } from '@/components/workspace-ui';
 import { WorkspaceSearch } from '@/components/workspace-search';
 import { AppLayout } from '@/layouts/app-layout';
 import { cn } from '@/lib/utils';
 
 type AssignmentStatus = 'active' | 'ended' | 'cancelled';
 export type AssignmentCrop = { id: number; name: string; type: CropType };
-type Planting = { id: number; planted_at: string; crop: AssignmentCrop };
+type Harvest = { id: number; harvested_at: string; quantity_kg: string | number; notes: string | null };
+type Planting = { id: number; planted_at: string; crop: AssignmentCrop; harvests?: Harvest[] };
 export type MemberAssignment = {
     id: number;
     status: AssignmentStatus;
@@ -21,6 +22,7 @@ export type MemberAssignment = {
     end_date: string | null;
     garden_plot: { plot_code: string; location: string; size: number | string };
     plantings?: Planting[];
+    harvests_sum_quantity_kg?: string | number | null;
 };
 
 const panelClass = 'overflow-hidden rounded-2xl border border-border bg-[#fbf8f2]';
@@ -51,7 +53,15 @@ function AssignmentFacts({ assignment }: { assignment: MemberAssignment }) {
     );
 }
 
-function PlantingsTable({ plantings }: { plantings: Planting[] }) {
+function kgLabel(value: string | number | null | undefined) {
+    return `${Number(value ?? 0).toLocaleString('en-PH', { maximumFractionDigits: 2 })} kg`;
+}
+
+function harvestTotal(planting: Planting) {
+    return (planting.harvests ?? []).reduce((sum, harvest) => sum + Number(harvest.quantity_kg), 0);
+}
+
+function PlantingsTable({ plantings, onHarvest }: { plantings: Planting[]; onHarvest?: (planting: Planting) => void }) {
     if (plantings.length === 0) {
         return <div className="p-5"><p className="text-sm font-semibold">No plantings recorded</p><p className="mt-1 text-sm leading-5 text-muted-foreground">Recorded crops and planting dates will appear here.</p></div>;
     }
@@ -59,12 +69,14 @@ function PlantingsTable({ plantings }: { plantings: Planting[] }) {
     return (
         <Table>
             <caption className="sr-only">Recorded crops and planting dates</caption>
-            <TableHeader className="bg-card/80"><TableRow className="hover:bg-transparent"><TableHead className="h-10 px-5 text-[10px] sm:px-6">Crop</TableHead><TableHead className="h-10 text-[10px]">Type</TableHead><TableHead className="h-10 text-[10px]">Planted</TableHead></TableRow></TableHeader>
+            <TableHeader className="bg-card/80"><TableRow className="hover:bg-transparent"><TableHead className="h-10 px-5 text-[10px] sm:px-6">Crop</TableHead><TableHead className="h-10 text-[10px]">Type</TableHead><TableHead className="h-10 text-[10px]">Planted</TableHead><TableHead className="h-10 text-[10px]">Harvested</TableHead>{onHarvest && <TableHead className="h-10 px-5 text-right text-[10px] sm:px-6">Harvest</TableHead>}</TableRow></TableHeader>
             <TableBody>{sortedPlantings.map((planting) => (
                 <TableRow key={planting.id} className="border-border/60 hover:bg-primary/[0.032]">
                     <TableCell className="px-5 py-3 sm:px-6"><div className="flex items-center gap-3"><span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-primary/[0.055] [&_svg]:size-4 [&_svg]:text-primary"><CropTypeIcon type={planting.crop.type} /></span><span className="font-semibold">{planting.crop.name}</span></div></TableCell>
                     <TableCell className="py-3 text-xs capitalize text-muted-foreground">{planting.crop.type}</TableCell>
                     <TableCell className="whitespace-nowrap py-3 text-xs text-muted-foreground">{dateLabel(planting.planted_at)}</TableCell>
+                    <TableCell className="whitespace-nowrap py-3 text-xs">{planting.harvests?.length ? <><span className="font-semibold tabular-nums">{kgLabel(harvestTotal(planting))}</span><span className="ml-1 text-muted-foreground">· {planting.harvests.length} {planting.harvests.length === 1 ? 'harvest' : 'harvests'}</span></> : <span className="text-muted-foreground">Not yet</span>}</TableCell>
+                    {onHarvest && <TableCell className="px-5 py-3 text-right sm:px-6"><Button size="sm" variant="outline" className="rounded-[10px]" aria-label={`Record harvest for ${planting.crop.name}`} onClick={() => onHarvest(planting)}><Carrot aria-hidden="true" />Record</Button></TableCell>}
                 </TableRow>
             ))}</TableBody>
         </Table>
@@ -91,6 +103,8 @@ export function MemberAssignmentsWorkspace({ assignments, activeAssignment, crop
     const [cropFilter, setCropFilter] = useState<CropType | 'all'>('all');
     const [selectedAssignment, setSelectedAssignment] = useState<MemberAssignment | null>(null);
     const plantingForm = useForm({ crop_id: '', planted_at: lastPlantingDate });
+    const [harvestPlanting, setHarvestPlanting] = useState<Planting | null>(null);
+    const harvestForm = useForm({ harvested_at: today, quantity_kg: '', notes: '' });
     const visibleCrops = crops.filter((crop) => cropFilter === 'all' || crop.type === cropFilter);
     const hasFilters = Boolean(filters.search || filters.status);
 
@@ -116,10 +130,22 @@ export function MemberAssignmentsWorkspace({ assignments, activeAssignment, crop
         plantingForm.post(`/assignments/${activeAssignment.id}/plantings`, { preserveScroll: true, onSuccess: () => setPlantingOpen(false) });
     }
 
+    function openHarvest(planting: Planting) {
+        harvestForm.setData({ harvested_at: today, quantity_kg: '', notes: '' });
+        harvestForm.clearErrors();
+        setHarvestPlanting(planting);
+    }
+
+    function submitHarvest(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        if (!harvestPlanting || harvestForm.processing) return;
+        harvestForm.post(`/plantings/${harvestPlanting.id}/harvests`, { preserveScroll: true, onSuccess: () => setHarvestPlanting(null) });
+    }
+
     return (
         <AppLayout
             title="My assignments"
-            description="View your current plot, record plantings, and review past assignments."
+            description="View your current plot, record plantings and harvests, and review past assignments."
             actions={(
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <WorkspaceSearch value={query} onChange={setQuery} label="Search assignments by plot or location" placeholder="Search assignments" onSubmit={() => filterHistory()} onClear={() => filterHistory(filters.status ?? '', '')} className="sm:w-[233px]" />
@@ -141,7 +167,7 @@ export function MemberAssignmentsWorkspace({ assignments, activeAssignment, crop
                             <section aria-labelledby="planting-record-title" className="border-t border-border/70">
                                 <h2 id="planting-record-title" className="sr-only">Planting record</h2>
                                 <p className="px-5 py-3 text-xs text-muted-foreground sm:px-6">{activeAssignment.plantings?.length ?? 0} {(activeAssignment.plantings?.length ?? 0) === 1 ? 'planting' : 'plantings'} recorded</p>
-                                <PlantingsTable plantings={activeAssignment.plantings ?? []} />
+                                <PlantingsTable plantings={activeAssignment.plantings ?? []} onHarvest={openHarvest} />
                             </section>
                         </div>
                     ) : (
@@ -209,6 +235,20 @@ export function MemberAssignmentsWorkspace({ assignments, activeAssignment, crop
                             {plantingForm.errors.planted_at && <p id="planting-date-error" role="alert" className="mt-2 text-sm text-destructive">{plantingForm.errors.planted_at}</p>}
                         </section>
                         <DialogFooter className="border-t border-border pt-4"><Button type="button" variant="outline" className="rounded-xl" disabled={plantingForm.processing} onClick={() => setPlantingOpen(false)}>Cancel</Button><Button type="submit" className="rounded-xl" disabled={plantingForm.processing}>{plantingForm.processing ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Sprout aria-hidden="true" />}{plantingForm.processing ? 'Saving…' : 'Add planting'}</Button></DialogFooter>
+                    </form>
+                </DialogContent>}
+            </Dialog>
+            <Dialog open={Boolean(harvestPlanting)} onOpenChange={(open) => { if (!open && !harvestForm.processing) setHarvestPlanting(null); }}>
+                {harvestPlanting && <DialogContent className="max-h-[85dvh] max-w-lg overflow-y-auto rounded-2xl bg-card" showCloseButton={!harvestForm.processing}>
+                    <DialogHeader className="pr-6"><DialogTitle className="text-xl font-[750] tracking-[-0.025em]">Record harvest</DialogTitle><DialogDescription>{harvestPlanting.crop.name}, planted {dateLabel(harvestPlanting.planted_at)}.</DialogDescription></DialogHeader>
+                    <form onSubmit={submitHarvest} className="space-y-5">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <label className="block space-y-1.5"><span className="text-sm font-semibold">Harvest date</span><input type="date" required className={fieldClass} min={harvestPlanting.planted_at.slice(0, 10)} max={today} value={harvestForm.data.harvested_at} aria-invalid={Boolean(harvestForm.errors.harvested_at)} onChange={(event) => harvestForm.setData('harvested_at', event.target.value)} />{harvestForm.errors.harvested_at && <span role="alert" className="block text-sm text-destructive">{harvestForm.errors.harvested_at}</span>}</label>
+                            <label className="block space-y-1.5"><span className="text-sm font-semibold">Quantity (kg)</span><input type="number" required inputMode="decimal" min="0.01" max="9999.99" step="0.01" placeholder="0.00" className={cn(fieldClass, 'tabular-nums')} value={harvestForm.data.quantity_kg} aria-invalid={Boolean(harvestForm.errors.quantity_kg)} onChange={(event) => harvestForm.setData('quantity_kg', event.target.value)} />{harvestForm.errors.quantity_kg && <span role="alert" className="block text-sm text-destructive">{harvestForm.errors.quantity_kg}</span>}</label>
+                        </div>
+                        <label className="block space-y-1.5"><span className="text-sm font-semibold">Notes <span className="font-normal text-muted-foreground">(optional)</span></span><textarea rows={3} maxLength={500} className={cn(fieldClass, 'h-auto py-2')} placeholder="Quality, pests, or anything worth remembering" value={harvestForm.data.notes} onChange={(event) => harvestForm.setData('notes', event.target.value)} />{harvestForm.errors.notes && <span role="alert" className="block text-sm text-destructive">{harvestForm.errors.notes}</span>}</label>
+                        {Boolean(harvestPlanting.harvests?.length) && <section aria-labelledby="previous-harvests-title"><h3 id="previous-harvests-title" className="mb-2 text-sm font-semibold">Previous harvests · {kgLabel(harvestTotal(harvestPlanting))}</h3><ul className="divide-y divide-border overflow-hidden rounded-xl border border-border text-sm">{[...(harvestPlanting.harvests ?? [])].sort((a, b) => b.harvested_at.localeCompare(a.harvested_at) || b.id - a.id).map((harvest) => <li key={harvest.id} className="flex items-start justify-between gap-3 px-4 py-2.5"><div><p className="font-medium">{dateLabel(harvest.harvested_at)}</p>{harvest.notes && <p className="mt-0.5 text-xs text-muted-foreground">{harvest.notes}</p>}</div><span className="shrink-0 font-semibold tabular-nums">{kgLabel(harvest.quantity_kg)}</span></li>)}</ul></section>}
+                        <DialogFooter className="border-t border-border pt-4"><Button type="button" variant="outline" className="rounded-xl" disabled={harvestForm.processing} onClick={() => setHarvestPlanting(null)}>Cancel</Button><Button type="submit" className="rounded-xl" disabled={harvestForm.processing}>{harvestForm.processing ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Carrot aria-hidden="true" />}{harvestForm.processing ? 'Saving…' : 'Record harvest'}</Button></DialogFooter>
                     </form>
                 </DialogContent>}
             </Dialog>
