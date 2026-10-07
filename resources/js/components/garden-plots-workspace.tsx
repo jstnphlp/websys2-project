@@ -98,6 +98,13 @@ function plotSection(location: string) {
     return `${location.split(' ')[0]} section`;
 }
 
+// Public domain / CC0 photos of real garden beds; see docs/IMAGE_CREDITS.md.
+const plotPhotos = ['raised-beds', 'prepared-bed', 'kale-cabbage', 'leafy-greens', 'greenhouse-beds', 'greenhouse-rows', 'garden-path', 'planted-field'];
+
+function plotPhoto(plotId: number) {
+    return `/images/plots/${plotPhotos[plotId % plotPhotos.length]}.jpg`;
+}
+
 function plotMonogram(plotCode: string) {
     const [prefix, number] = plotCode.split('-');
     return `${prefix}${Number(number) || number}`;
@@ -480,13 +487,7 @@ export function GardenPlotsWorkspace({ title, description }: { title: string; de
                                     href={`#plot-${plot.plot_code.toLocaleLowerCase()}`}
                                     className="group relative h-[225px] w-[225px] shrink-0 overflow-hidden rounded-[14px] border border-primary/[0.08] bg-[#afb397] shadow-[0_1px_3px_rgba(64,79,29,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                                 >
-                                    <span className="absolute inset-0 bg-[linear-gradient(145deg,#d7d4c1_0%,#b7bea0_43%,#738052_100%)]" aria-hidden="true" />
-                                    <span
-                                        className="absolute bottom-10 left-[18px] right-[18px] top-[18px] rounded-[10px] border border-background/35"
-                                        style={{ backgroundImage: 'repeating-linear-gradient(90deg,rgba(244,237,230,.30) 0 2px,transparent 2px 31px),repeating-linear-gradient(0deg,rgba(244,237,230,.25) 0 2px,transparent 2px 30px),linear-gradient(135deg,rgba(126,93,58,.56),rgba(79,104,52,.45))' }}
-                                        aria-hidden="true"
-                                    />
-                                    <span className="absolute left-[18px] top-[18px] rounded-full border border-border/75 bg-background/90 px-2 py-1 text-[10px] font-semibold leading-[14px] text-foreground shadow-sm">Plot photo placeholder</span>
+                                    <img src={plotPhoto(plot.id)} alt="" loading="lazy" className="absolute inset-0 size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
                                     <span className="absolute inset-0 bg-gradient-to-t from-primary/30 to-transparent to-55%" aria-hidden="true" />
                                     <span className="absolute bottom-2.5 left-2.5 right-2.5 z-[2] min-h-14 rounded-[10px] border border-background/30 bg-primary/[0.84] px-3 py-2 shadow-[0_8px_20px_rgba(45,56,20,0.12)] backdrop-blur-xl">
                                         <span className="block text-sm font-semibold leading-5 text-primary-foreground">Plot {plot.plot_code}</span>
