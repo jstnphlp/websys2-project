@@ -2,6 +2,7 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { ArrowRight, CircleCheck, ClipboardList, Clock3, Map, MapPin, Sprout } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { StaffLoanManager } from '@/components/staff-loan-manager';
 import { AppLayout } from '@/layouts/app-layout';
 import type { SharedPageProps } from '@/types';
 
@@ -111,6 +112,11 @@ export function OperationsDashboard({ metrics, requests }: OperationsDashboardPr
                                 </div>
                             )}
                         </div>
+                    </section>
+
+                    <section className="pt-6" aria-labelledby="loans-title">
+                        <h2 id="loans-title" className="sr-only">Tool loans</h2>
+                        <StaffLoanManager />
                     </section>
                 </div>
             </AppLayout>

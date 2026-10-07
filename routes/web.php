@@ -18,6 +18,8 @@ use App\Http\Controllers\PlantingController;
 use App\Http\Controllers\PlotRequestController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\ResourceController;
+use App\Http\Controllers\ResourceLoanController;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route;
 
@@ -50,6 +52,21 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/api/garden-plots', [GardenPlotController::class, 'apiIndex'])->middleware('role:member,staff');
         Route::get('/api/garden-calendar/forecasts', [CropCycleForecastController::class, 'index'])->middleware('role:member,staff');
         Route::post('/api/plot-requests', [PlotRequestController::class, 'storeApi'])->middleware('role:member');
+        
+        // Resource Sharing API Routes
+        Route::get('/api/resources', [ResourceController::class, 'index'])->middleware('role:admin,staff,member');
+        Route::get('/api/resource-loans', [ResourceLoanController::class, 'index'])->middleware('role:staff');
+        Route::get('/api/my-loans', [ResourceLoanController::class, 'myLoans'])->middleware('role:member,staff');
+        Route::post('/api/resource-loans', [ResourceLoanController::class, 'store'])->middleware('role:staff,member');
+        Route::post('/api/resource-loans/{resourceLoan}/approve', [ResourceLoanController::class, 'approve'])->middleware('role:staff');
+        Route::post('/api/resource-loans/{resourceLoan}/checkout', [ResourceLoanController::class, 'checkout'])->middleware('role:staff');
+        Route::post('/api/resource-loans/{resourceLoan}/return', [ResourceLoanController::class, 'checkin'])->middleware('role:staff');
+        Route::get('/api/admin/resources/analytics', [ResourceController::class, 'analytics'])->middleware('role:admin');
+        
+        // Tool Shed Frontend Route
+        Route::get('/tools', function () {
+            return inertia('tools/index');
+        })->middleware('role:admin,staff,member')->name('tools.index');
         Route::get('/garden-plots', [GardenPlotController::class, 'index'])->middleware('role:member,staff')->name('plots.index');
         Route::post('/garden-plots', [GardenPlotController::class, 'store'])->middleware('role:staff')->name('plots.store');
         Route::put('/garden-plots/{gardenPlot}', [GardenPlotController::class, 'update'])->middleware('role:staff')->name('plots.update');

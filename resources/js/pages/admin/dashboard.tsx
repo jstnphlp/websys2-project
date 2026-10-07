@@ -1,6 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { ArrowRight, ClipboardList, FileChartColumn, Map, Megaphone, Sprout, UsersRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AdminToolAnalytics } from '@/components/admin-tool-analytics';
 import { AppLayout } from '@/layouts/app-layout';
 import type { SharedPageProps } from '@/types';
 
@@ -93,6 +94,11 @@ export default function AdminDashboard({ metrics }: { metrics: Record<string, nu
                             </div>
                         </section>
                     </div>
+
+                    <section className="pt-6 mt-8 border-t border-border" aria-labelledby="analytics-title">
+                        <h2 id="analytics-title" className="sr-only">Resource analytics</h2>
+                        <AdminToolAnalytics />
+                    </section>
                 </div>
             </AppLayout>
         </>

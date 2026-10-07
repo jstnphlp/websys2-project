@@ -14,6 +14,7 @@ import {
     Settings,
     Sprout,
     UsersRound,
+    Wrench,
 } from 'lucide-react';
 import { useEffect, useRef, useState, type PropsWithChildren, type ReactNode } from 'react';
 import { SettingsModal } from '@/components/settings-modal';
@@ -40,6 +41,7 @@ const navigationItems: Array<{
     { label: 'Crops', href: '/crops', icon: Sprout, roles: ['staff'] },
     { label: 'Plot requests', memberLabel: 'My plot requests', href: '/plot-requests', icon: ClipboardList, roles: ['member', 'staff'] },
     { label: 'Assignments', memberLabel: 'My assignments', href: '/assignments', icon: Sprout, roles: ['member', 'staff'] },
+    { label: 'Tool shed', href: '/tools', icon: Wrench, roles: ['member', 'staff', 'admin'] },
     { label: 'Garden calendar', href: '/garden-calendar', icon: CalendarDays, roles: ['member', 'staff'] },
     { label: 'Community updates', href: '/community-updates', icon: Megaphone, roles: ['member', 'staff', 'admin'] },
     { label: 'Reports', href: '/reports', icon: FileChartColumn, roles: ['admin'] },

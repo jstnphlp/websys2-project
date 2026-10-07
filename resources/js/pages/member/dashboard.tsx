@@ -7,6 +7,7 @@ import {
     Sprout,
 } from 'lucide-react';
 import { RequestBadge, type RequestStatus } from '@/components/plot-request-status';
+import { ToolCatalog } from '@/components/tool-catalog';
 import { AppLayout } from '@/layouts/app-layout';
 import type { SharedPageProps } from '@/types';
 
@@ -150,6 +151,16 @@ export default function MemberDashboard({ assignment, requests, events, updates 
                                         <RequestBadge status={item.status} />
                                     </Link>
                             )) : <p className="py-5 text-sm text-muted-foreground">Your plot requests will appear here.</p>}
+                        </div>
+                    </section>
+
+                    <section className="mt-[34px]" aria-labelledby="tools-title">
+                        <h2 id="tools-title" className="sr-only">Community tools</h2>
+                        <div className="overflow-hidden rounded-3xl border border-primary/10 bg-white p-[22px] shadow-[0_4px_16px_rgba(64,79,29,0.03)]">
+                            <div className="mb-4 flex items-center justify-between">
+                                <h3 className="text-base font-[750] leading-6 tracking-[0.003em] text-foreground">Community Tool Shed</h3>
+                            </div>
+                            <ToolCatalog />
                         </div>
                     </section>
                 </div>

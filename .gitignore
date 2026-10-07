@@ -27,3 +27,7 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 /submission
+/_local_artifacts
+/.agents
+/agent.md
+/AGENTS.md
