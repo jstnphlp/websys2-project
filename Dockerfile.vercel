@@ -20,13 +20,20 @@ WORKDIR /app
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --no-scripts
 COPY . .
-RUN composer dump-autoload --no-dev --classmap-authoritative --no-interaction
+RUN mkdir -p bootstrap/cache/views \
+    && composer dump-autoload --no-dev --classmap-authoritative --no-interaction \
+    && APP_ENV=production APP_DEBUG=false LOG_CHANNEL=stderr \
+       php artisan route:cache --no-ansi \
+    && APP_ENV=production APP_DEBUG=false LOG_CHANNEL=stderr \
+       VIEW_COMPILED_PATH=/app/bootstrap/cache/views \
+       php artisan view:cache --no-ansi
 
 FROM php-base AS runtime
 
 WORKDIR /app
 COPY --chown=www-data:www-data . .
 COPY --from=vendor --chown=www-data:www-data /app/vendor ./vendor
+COPY --from=vendor --chown=www-data:www-data /app/bootstrap/cache ./bootstrap/cache
 COPY --from=frontend --chown=www-data:www-data /app/public/build ./public/build
 COPY docker/Caddyfile /etc/frankenphp/Caddyfile
 
@@ -37,17 +44,12 @@ ENV APP_ENV=production \
     CACHE_STORE=array \
     CACHE_LIMITER=database \
     DB_CONNECTION=pgsql \
-    SESSION_DRIVER=database \
+    SESSION_DRIVER=cookie \
     SESSION_ENCRYPT=true \
     SESSION_SECURE_COOKIE=true \
     QUEUE_CONNECTION=sync \
     LARAVEL_STORAGE_PATH=/tmp/community-garden/storage \
-    VIEW_COMPILED_PATH=/tmp/community-garden/storage/framework/views \
-    APP_CONFIG_CACHE=/tmp/community-garden/bootstrap/config.php \
-    APP_ROUTES_CACHE=/tmp/community-garden/bootstrap/routes.php \
-    APP_EVENTS_CACHE=/tmp/community-garden/bootstrap/events.php \
-    APP_SERVICES_CACHE=/tmp/community-garden/bootstrap/services.php \
-    APP_PACKAGES_CACHE=/tmp/community-garden/bootstrap/packages.php
+    VIEW_COMPILED_PATH=/app/bootstrap/cache/views
 
 RUN chmod +x /app/docker/entrypoint.sh
 
