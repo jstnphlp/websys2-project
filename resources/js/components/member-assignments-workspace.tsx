@@ -1,5 +1,5 @@
 import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { ArrowRight, Carrot, CalendarDays, CircleCheck, Clock3, Eye, LoaderCircle, MapPin, Sprout, XCircle } from 'lucide-react';
+import { ArrowRight, Carrot, CalendarDays, CircleCheck, Clock3, Eye, LoaderCircle, MapPin, Pencil, Sprout, Trash2, XCircle } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { CropTypeIcon, cropTypes, type CropType } from '@/components/crop-type-icon';
 import { PlantingCalendar } from '@/components/planting-calendar';
@@ -61,7 +61,9 @@ function harvestTotal(planting: Planting) {
     return (planting.harvests ?? []).reduce((sum, harvest) => sum + Number(harvest.quantity_kg), 0);
 }
 
-function PlantingsTable({ plantings, onHarvest }: { plantings: Planting[]; onHarvest?: (planting: Planting) => void }) {
+type PlantingActions = { onHarvest: (planting: Planting) => void; onEdit: (planting: Planting) => void; onRemove: (planting: Planting) => void };
+
+function PlantingsTable({ plantings, actions }: { plantings: Planting[]; actions?: PlantingActions }) {
     if (plantings.length === 0) {
         return <div className="p-5"><p className="text-sm font-semibold">No plantings recorded</p><p className="mt-1 text-sm leading-5 text-muted-foreground">Recorded crops and planting dates will appear here.</p></div>;
     }
@@ -69,14 +71,14 @@ function PlantingsTable({ plantings, onHarvest }: { plantings: Planting[]; onHar
     return (
         <Table>
             <caption className="sr-only">Recorded crops and planting dates</caption>
-            <TableHeader className="bg-card/80"><TableRow className="hover:bg-transparent"><TableHead className="h-10 px-5 text-[10px] sm:px-6">Crop</TableHead><TableHead className="h-10 text-[10px]">Type</TableHead><TableHead className="h-10 text-[10px]">Planted</TableHead><TableHead className="h-10 text-[10px]">Harvested</TableHead>{onHarvest && <TableHead className="h-10 px-5 text-right text-[10px] sm:px-6">Harvest</TableHead>}</TableRow></TableHeader>
+            <TableHeader className="bg-card/80"><TableRow className="hover:bg-transparent"><TableHead className="h-10 px-5 text-[10px] sm:px-6">Crop</TableHead><TableHead className="hidden h-10 text-[10px] sm:table-cell">Type</TableHead><TableHead className="hidden h-10 text-[10px] sm:table-cell">Planted</TableHead><TableHead className="hidden h-10 text-[10px] sm:table-cell">Harvested</TableHead>{actions && <TableHead className="h-10 px-5 text-right text-[10px] sm:px-6">Actions</TableHead>}</TableRow></TableHeader>
             <TableBody>{sortedPlantings.map((planting) => (
                 <TableRow key={planting.id} className="border-border/60 hover:bg-primary/[0.032]">
-                    <TableCell className="px-5 py-3 sm:px-6"><div className="flex items-center gap-3"><span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-primary/[0.055] [&_svg]:size-4 [&_svg]:text-primary"><CropTypeIcon type={planting.crop.type} /></span><span className="font-semibold">{planting.crop.name}</span></div></TableCell>
-                    <TableCell className="py-3 text-xs capitalize text-muted-foreground">{planting.crop.type}</TableCell>
-                    <TableCell className="whitespace-nowrap py-3 text-xs text-muted-foreground">{dateLabel(planting.planted_at)}</TableCell>
-                    <TableCell className="whitespace-nowrap py-3 text-xs">{planting.harvests?.length ? <><span className="font-semibold tabular-nums">{kgLabel(harvestTotal(planting))}</span><span className="ml-1 text-muted-foreground">· {planting.harvests.length} {planting.harvests.length === 1 ? 'harvest' : 'harvests'}</span></> : <span className="text-muted-foreground">Not yet</span>}</TableCell>
-                    {onHarvest && <TableCell className="px-5 py-3 text-right sm:px-6"><Button size="sm" variant="outline" className="rounded-[10px]" aria-label={`Record harvest for ${planting.crop.name}`} onClick={() => onHarvest(planting)}><Carrot aria-hidden="true" />Record</Button></TableCell>}
+                    <TableCell className="px-5 py-3 sm:px-6"><div className="flex items-center gap-3"><span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-primary/[0.055] [&_svg]:size-4 [&_svg]:text-primary"><CropTypeIcon type={planting.crop.type} /></span><div><span className="font-semibold">{planting.crop.name}</span><span className="mt-0.5 block text-xs text-muted-foreground sm:hidden">{dateLabel(planting.planted_at)}{planting.harvests?.length ? ` · ${kgLabel(harvestTotal(planting))} harvested` : ''}</span></div></div></TableCell>
+                    <TableCell className="hidden py-3 text-xs capitalize text-muted-foreground sm:table-cell">{planting.crop.type}</TableCell>
+                    <TableCell className="hidden whitespace-nowrap py-3 text-xs text-muted-foreground sm:table-cell">{dateLabel(planting.planted_at)}</TableCell>
+                    <TableCell className="hidden whitespace-nowrap py-3 text-xs sm:table-cell">{planting.harvests?.length ? <><span className="font-semibold tabular-nums">{kgLabel(harvestTotal(planting))}</span><span className="ml-1 text-muted-foreground">· {planting.harvests.length} {planting.harvests.length === 1 ? 'harvest' : 'harvests'}</span></> : <span className="text-muted-foreground">Not yet</span>}</TableCell>
+                    {actions && <TableCell className="px-5 py-3 sm:px-6"><div className="flex justify-end gap-1.5"><Button size="sm" variant="outline" className="rounded-[10px]" aria-label={`Record harvest for ${planting.crop.name}`} onClick={() => actions.onHarvest(planting)}><Carrot aria-hidden="true" /><span className="hidden sm:inline">Record</span></Button><Button size="icon" variant="ghost" className="size-8 rounded-[10px]" aria-label={`Edit ${planting.crop.name} planting`} onClick={() => actions.onEdit(planting)}><Pencil aria-hidden="true" /></Button><Button size="icon" variant="ghost" className="size-8 rounded-[10px] text-muted-foreground hover:text-destructive" aria-label={`Remove ${planting.crop.name} planting`} onClick={() => actions.onRemove(planting)}><Trash2 aria-hidden="true" /></Button></div></TableCell>}
                 </TableRow>
             ))}</TableBody>
         </Table>
@@ -103,6 +105,11 @@ export function MemberAssignmentsWorkspace({ assignments, activeAssignment, crop
     const [cropFilter, setCropFilter] = useState<CropType | 'all'>('all');
     const [selectedAssignment, setSelectedAssignment] = useState<MemberAssignment | null>(null);
     const plantingForm = useForm({ crop_id: '', planted_at: lastPlantingDate });
+    const [editingPlanting, setEditingPlanting] = useState<Planting | null>(null);
+    const [removingPlanting, setRemovingPlanting] = useState<Planting | null>(null);
+    const [removing, setRemoving] = useState(false);
+    const firstHarvestDate = editingPlanting?.harvests?.map((harvest) => harvest.harvested_at.slice(0, 10)).sort()[0];
+    const latestPlantingDate = firstHarvestDate && firstHarvestDate < lastPlantingDate ? firstHarvestDate : lastPlantingDate;
     const [harvestPlanting, setHarvestPlanting] = useState<Planting | null>(null);
     const harvestForm = useForm({ harvested_at: today, quantity_kg: '', notes: '' });
     const visibleCrops = crops.filter((crop) => cropFilter === 'all' || crop.type === cropFilter);
@@ -113,6 +120,7 @@ export function MemberAssignmentsWorkspace({ assignments, activeAssignment, crop
     }
 
     function openPlanting() {
+        setEditingPlanting(null);
         plantingForm.setData({ crop_id: '', planted_at: lastPlantingDate });
         plantingForm.clearErrors();
         setCropFilter('all');
@@ -127,7 +135,22 @@ export function MemberAssignmentsWorkspace({ assignments, activeAssignment, crop
             plantingForm.setError('crop_id', 'Choose the crop you planted.');
             return;
         }
-        plantingForm.post(`/assignments/${activeAssignment.id}/plantings`, { preserveScroll: true, onSuccess: () => setPlantingOpen(false) });
+        const options = { preserveScroll: true, onSuccess: () => setPlantingOpen(false) };
+        if (editingPlanting) plantingForm.put(`/plantings/${editingPlanting.id}`, options);
+        else plantingForm.post(`/assignments/${activeAssignment.id}/plantings`, options);
+    }
+
+    function openEditPlanting(planting: Planting) {
+        setEditingPlanting(planting);
+        plantingForm.setData({ crop_id: String(planting.crop.id), planted_at: planting.planted_at.slice(0, 10) });
+        plantingForm.clearErrors();
+        setCropFilter('all');
+        setPlantingOpen(true);
+    }
+
+    function removePlanting() {
+        if (!removingPlanting) return;
+        router.delete(`/plantings/${removingPlanting.id}`, { preserveScroll: true, onStart: () => setRemoving(true), onFinish: () => setRemoving(false), onSuccess: () => setRemovingPlanting(null) });
     }
 
     function openHarvest(planting: Planting) {
@@ -167,7 +190,7 @@ export function MemberAssignmentsWorkspace({ assignments, activeAssignment, crop
                             <section aria-labelledby="planting-record-title" className="border-t border-border/70">
                                 <h2 id="planting-record-title" className="sr-only">Planting record</h2>
                                 <p className="px-5 py-3 text-xs text-muted-foreground sm:px-6">{activeAssignment.plantings?.length ?? 0} {(activeAssignment.plantings?.length ?? 0) === 1 ? 'planting' : 'plantings'} recorded</p>
-                                <PlantingsTable plantings={activeAssignment.plantings ?? []} onHarvest={openHarvest} />
+                                <PlantingsTable plantings={activeAssignment.plantings ?? []} actions={{ onHarvest: openHarvest, onEdit: openEditPlanting, onRemove: setRemovingPlanting }} />
                             </section>
                         </div>
                     ) : (
@@ -217,7 +240,7 @@ export function MemberAssignmentsWorkspace({ assignments, activeAssignment, crop
 
             <Dialog open={plantingOpen && Boolean(activeAssignment)} onOpenChange={(open) => { if (!plantingForm.processing) setPlantingOpen(open); }}>
                 {activeAssignment && <DialogContent className="max-h-[85dvh] max-w-lg overflow-y-auto rounded-2xl bg-card" showCloseButton={!plantingForm.processing}>
-                    <DialogHeader className="pr-6"><DialogTitle className="text-xl font-[750] tracking-[-0.025em]">Add planting</DialogTitle><DialogDescription>Record a crop planted in plot {activeAssignment.garden_plot.plot_code}.</DialogDescription></DialogHeader>
+                    <DialogHeader className="pr-6"><DialogTitle className="text-xl font-[750] tracking-[-0.025em]">{editingPlanting ? 'Edit planting' : 'Add planting'}</DialogTitle><DialogDescription>{editingPlanting ? `Change the crop or planting date for ${editingPlanting.crop.name}.` : `Record a crop planted in plot ${activeAssignment.garden_plot.plot_code}.`}</DialogDescription></DialogHeader>
                     <form onSubmit={submitPlanting} className="space-y-5">
                         <div role="group" aria-labelledby="planting-crop-label" aria-describedby={plantingForm.errors.crop_id ? 'planting-crop-error' : undefined}>
                             <h3 id="planting-crop-label" className="mb-2 text-sm font-semibold">Choose a crop</h3>
@@ -230,14 +253,22 @@ export function MemberAssignmentsWorkspace({ assignments, activeAssignment, crop
                         </div>
                         <section aria-labelledby="planting-date-label" aria-describedby={plantingForm.errors.planted_at ? 'planting-date-error' : 'planting-date-help'}>
                             <h3 id="planting-date-label" className="mb-2 text-sm font-semibold">Planting date</h3>
-                            <PlantingCalendar value={plantingForm.data.planted_at} min={activeAssignment.start_date.slice(0, 10)} max={lastPlantingDate} onChange={(date) => { plantingForm.setData('planted_at', date); plantingForm.clearErrors('planted_at'); }} />
-                            <p id="planting-date-help" className="mt-2 text-xs leading-5 text-muted-foreground">Selected: {dateLabel(plantingForm.data.planted_at)}. Choose a date from your assignment start through {lastPlantingDate === today ? 'today' : dateLabel(lastPlantingDate)}.</p>
+                            <PlantingCalendar value={plantingForm.data.planted_at} min={activeAssignment.start_date.slice(0, 10)} max={latestPlantingDate} onChange={(date) => { plantingForm.setData('planted_at', date); plantingForm.clearErrors('planted_at'); }} />
+                            <p id="planting-date-help" className="mt-2 text-xs leading-5 text-muted-foreground">Selected: {dateLabel(plantingForm.data.planted_at)}. Choose a date from your assignment start through {latestPlantingDate === today ? 'today' : dateLabel(latestPlantingDate)}{latestPlantingDate === firstHarvestDate ? ', the first harvest' : ''}.</p>
                             {plantingForm.errors.planted_at && <p id="planting-date-error" role="alert" className="mt-2 text-sm text-destructive">{plantingForm.errors.planted_at}</p>}
                         </section>
-                        <DialogFooter className="border-t border-border pt-4"><Button type="button" variant="outline" className="rounded-xl" disabled={plantingForm.processing} onClick={() => setPlantingOpen(false)}>Cancel</Button><Button type="submit" className="rounded-xl" disabled={plantingForm.processing}>{plantingForm.processing ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Sprout aria-hidden="true" />}{plantingForm.processing ? 'Saving…' : 'Add planting'}</Button></DialogFooter>
+                        <DialogFooter className="border-t border-border pt-4"><Button type="button" variant="outline" className="rounded-xl" disabled={plantingForm.processing} onClick={() => setPlantingOpen(false)}>Cancel</Button><Button type="submit" className="rounded-xl" disabled={plantingForm.processing}>{plantingForm.processing ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Sprout aria-hidden="true" />}{plantingForm.processing ? 'Saving…' : editingPlanting ? 'Save changes' : 'Add planting'}</Button></DialogFooter>
                     </form>
                 </DialogContent>}
             </Dialog>
+            <Dialog open={Boolean(removingPlanting)} onOpenChange={(open) => { if (!open && !removing) setRemovingPlanting(null); }}>
+                {removingPlanting && <DialogContent className="max-w-md rounded-2xl bg-card" showCloseButton={!removing}>
+                    <DialogHeader className="pr-6"><DialogTitle className="text-xl font-[750] tracking-[-0.025em]">Remove planting?</DialogTitle><DialogDescription>{removingPlanting.crop.name}, planted {dateLabel(removingPlanting.planted_at)}, will be removed from your plot record.</DialogDescription></DialogHeader>
+                    {Boolean(removingPlanting.harvests?.length) && <p role="alert" className="rounded-xl bg-destructive/[0.07] px-4 py-3 text-sm text-destructive">Its {removingPlanting.harvests!.length} recorded {removingPlanting.harvests!.length === 1 ? 'harvest' : 'harvests'} ({kgLabel(harvestTotal(removingPlanting))}) will also be removed.</p>}
+                    <DialogFooter><Button type="button" variant="outline" className="rounded-xl" disabled={removing} onClick={() => setRemovingPlanting(null)}>Keep planting</Button><Button type="button" variant="destructive" className="rounded-xl" disabled={removing} onClick={removePlanting}>{removing ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Trash2 aria-hidden="true" />}{removing ? 'Removing…' : 'Remove planting'}</Button></DialogFooter>
+                </DialogContent>}
+            </Dialog>
+
             <Dialog open={Boolean(harvestPlanting)} onOpenChange={(open) => { if (!open && !harvestForm.processing) setHarvestPlanting(null); }}>
                 {harvestPlanting && <DialogContent className="max-h-[85dvh] max-w-lg overflow-y-auto rounded-2xl bg-card" showCloseButton={!harvestForm.processing}>
                     <DialogHeader className="pr-6"><DialogTitle className="text-xl font-[750] tracking-[-0.025em]">Record harvest</DialogTitle><DialogDescription>{harvestPlanting.crop.name}, planted {dateLabel(harvestPlanting.planted_at)}.</DialogDescription></DialogHeader>
